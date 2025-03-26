@@ -1,0 +1,4 @@
+Log file created at: 2024/05/26 00:19:42
+Running on machine: ldk-Legion-Y9000P-IAH7H
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+E0526 00:19:42.905447 14236 MVCAMAPI.cpp:350] CameraInit Failed, err:-18,Version:2.1.0.37,FriendlyName:MV-SUA630C#0,SN:042080320073

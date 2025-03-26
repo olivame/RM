@@ -1,0 +1,5 @@
+Log file created at: 2024/07/20 19:34:58
+Running on machine: ldk-Legion-Y9000P-IAH7H
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+W0720 19:34:58.773957 18512 MVCameraBase.cpp:99] Device:(name:MV-SUA630C#0 sn:041112220100)Lost
+W0720 19:34:59.652499 18512 MVCameraBase.cpp:119] Device:(name:MV-SUA630C#0 sn:041112220100)ReConnected, TolCount:1
