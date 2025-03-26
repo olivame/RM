@@ -32,6 +32,10 @@ class CameraPublisher:
             -4.42259917e-03, 1.96227336e+01
         ])
         
+        # 默认参数
+        self.gain_value = 19.0  # 默认增益值
+        self.exposure_time = 55000.0  # 默认曝光时间(μs)
+        
         # 初始化相机
         self.init_camera()
 
@@ -67,6 +71,16 @@ class CameraPublisher:
             rospy.logerr("set trigger mode fail! ret[0x%x]" % ret)
             return False
 
+        # 设置初始曝光时间
+        ret = self.set_exposure(self.exposure_time)
+        if ret != 0:
+            rospy.logwarn("set exposure fail! ret[0x%x]" % ret)
+
+        # 设置初始增益值
+        ret = self.set_gain(self.gain_value)
+        if ret != 0:
+            rospy.logwarn("set gain fail! ret[0x%x]" % ret)
+
         # 获取数据包大小
         stParam = MVCC_INTVALUE()
         memset(byref(stParam), 0, sizeof(MVCC_INTVALUE))
@@ -83,6 +97,60 @@ class CameraPublisher:
             return False
 
         return True
+
+    def set_exposure(self, exposure_time):
+        """设置相机曝光时间(单位:μs)"""
+        # 获取曝光时间范围
+        stFloatParam = MVCC_FLOATVALUE()
+        memset(byref(stFloatParam), 0, sizeof(MVCC_FLOATVALUE))
+        ret = self.cam.MV_CC_GetFloatValue("ExposureTime", stFloatParam)
+        if ret != 0:
+            rospy.logerr("get exposure range fail! ret[0x%x]" % ret)
+            return ret
+        
+        # 检查曝光时间是否在有效范围内
+        min_exposure = stFloatParam.fMin
+        max_exposure = stFloatParam.fMax
+        if exposure_time < min_exposure or exposure_time > max_exposure:
+            rospy.logwarn(f"Exposure time {exposure_time} out of range [{min_exposure}, {max_exposure}]")
+            exposure_time = max(min_exposure, min(exposure_time, max_exposure))
+        
+        # 设置曝光时间
+        ret = self.cam.MV_CC_SetFloatValue("ExposureTime", exposure_time)
+        if ret == 0:
+            self.exposure_time = exposure_time
+            rospy.loginfo(f"Set exposure time to {exposure_time}μs successfully")
+        else:
+            rospy.logerr(f"set exposure fail! ret[0x%x]" % ret)
+        
+        return ret
+
+    def set_gain(self, gain_value):
+        """设置相机增益"""
+        # 获取增益范围
+        stFloatParam = MVCC_FLOATVALUE()
+        memset(byref(stFloatParam), 0, sizeof(MVCC_FLOATVALUE))
+        ret = self.cam.MV_CC_GetFloatValue("Gain", stFloatParam)
+        if ret != 0:
+            rospy.logerr("get gain range fail! ret[0x%x]" % ret)
+            return ret
+        
+        # 检查增益值是否在有效范围内
+        min_gain = stFloatParam.fMin
+        max_gain = stFloatParam.fMax
+        if gain_value < min_gain or gain_value > max_gain:
+            rospy.logwarn(f"Gain value {gain_value} out of range [{min_gain}, {max_gain}]")
+            gain_value = max(min_gain, min(gain_value, max_gain))
+        
+        # 设置增益值
+        ret = self.cam.MV_CC_SetFloatValue("Gain", gain_value)
+        if ret == 0:
+            self.gain_value = gain_value
+            rospy.loginfo(f"Set gain to {gain_value} successfully")
+        else:
+            rospy.logerr(f"set gain fail! ret[0x%x]" % ret)
+        
+        return ret
 
     def create_camera_info_msg(self, frame):
         """创建相机参数消息"""
@@ -183,6 +251,10 @@ class CameraPublisher:
 if __name__ == "__main__":
     try:
         publisher = CameraPublisher()
+        
+        # 示例：动态调整曝光时间
+        # publisher.set_exposure(10000.0)  # 设置为10ms
+        
         publisher.run()
     except rospy.ROSInterruptException:
         pass
