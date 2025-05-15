@@ -566,22 +566,33 @@ class yolov5_detector:
 
 class lidar_nudt:
     def __init__(self):
-        # 右相机
-        self.Rotate_matrix = np.float64([[-0.195049, -0.980605, -0.0192303],
+        # left相机
+        '''self.Rotate_matrix = np.float64([[-0.195049, -0.980605, -0.0192303],
                                          [0.0239639, 0.0148363, -0.999603],
                                          [0.980501, -0.195432, 0.0206054]])
+        self.rvec, _ = cv2.Rodrigues(self.Rotate_matrix)'''
+        R_tc = np.float64([
+            [0.14670,   0.00866,   0.98914],
+            [-0.98910, -0.01178,   0.14680],
+            [0.01293,  -0.99989,   0.00684]
+        ])
+        t_tc = np.float64([[-0.10129], [0.08891], [-0.01653]])
+
+        # 求逆得到点云到相机
+        R_ct = R_tc.T
+        t_ct = -R_tc.T @ t_tc
+        self.Rotate_matrix = R_ct
+        self.tvec = t_ct.flatten()
         self.rvec, _ = cv2.Rodrigues(self.Rotate_matrix)
-        # 经过排序修改后得到的平移矩阵
-        self.tvec = np.float64([-0.16477, -0.0466339, 0.052998])
         # 相机内部参数,matlab
-        self.camera_matrix = np.float64([[1947, 0, 1576.9],
-                                         [0, 1946.9, 1061.2],
-                                         [0, 0, 1]])
+        self.camera_matrix = np.float64([[4.74121246e+03, 0.00000000e+00, 1.54304828e+03],
+                                         [0.00000000e+00, 4.74257863e+03, 1.04017365e+03],
+                                         [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
         # 相机形变矩阵
-        self.distCoeffs = np.float64([-0.4509, 0.2993, -0.00009985, 0.0001312, -0.1297])
-        self.weights_path = "/home/ldk/RM_exp/code/yolov5_camera_final_1/weights_test/r1/r1_728_s.pt"
+        self.distCoeffs = np.float64([1.77935891e-02, 6.50135435e-02, -6.90728155e-04, -4.89124420e-04, 2.79849057e+00])
+        self.weights_path = "/home/olivame/yolov5_camera_final_1/weights_test/r1/r1_728_s.pt"
         self.detector = yolov5_detector(self.weights_path,img_size= (3088, 2064), data='yaml/car.yaml', conf_thres=0.1, iou_thres=0.5, max_det=14)
-        self.weights_path_second = "/home/ldk/RM_exp/code/yolov5_camera_final_1/weights_test/r2/r2_727_s.pt"
+        self.weights_path_second = "/home/olivame/yolov5_camera_final_1/weights_test/r2/r2_727_s.pt"
         self.detector_second = yolov5_detector(self.weights_path_second, data='armor/car.yaml', conf_thres=0.1, iou_thres=0.5, max_det=1)
         # 比赛设置
         self.T1 = True  # 用于判断mean_cloud是否有效
@@ -604,10 +615,12 @@ class lidar_nudt:
         # 敌方总位置信息
         # 敌方为蓝方
         if self.enemy_is_blue:
-            self.pos_data = [1800, 100, 1500, 850, 1950, 1350, 1865, 700, 1650, 100, 2250, 750]
+            #self.pos_data = [1800, 100, 1500, 850, 1950, 1350, 1865, 700, 1650, 100, 2400, 750]
+            self.pos_data = [1800, 100, 1500, 850, 1950, 1350, 1865, 700, 2400, 750]
         else:
             # 敌方是红方
-            self.pos_data = [1000, 1300, 800, 1050, 850, 150, 1125, 1400, 1150, 1400, 570, 750]
+            #self.pos_data = [1000, 1300, 800, 1050, 850, 150, 1125, 1400, 1150, 1400, 400, 750]
+            self.pos_data = [1000, 1300, 800, 1050, 850, 150, 1125, 1400, 400, 750]
         # 定时器一直发送
         self.timer = rospy.Timer(rospy.Duration(0.2), self.timer_callback)
         self.timer_double = rospy.Timer(rospy.Duration(1), self.timer_double_callback)
@@ -662,6 +675,7 @@ class lidar_nudt:
                     if np.all(np.isnan(mean_cloud)) or iou_count == 0:
                         self.T1 = False
                     annotator.box_label(xyxy_second_in_img1, label_second, color=colors(int(confidence_second), True))
+                    print("当前均值点云:", mean_cloud)
                     if self.enemy_is_blue:
                         if label_second == "B1" and self.T1:
                             # mean_cloud[0] = (mean_cloud[0]/0.34202 - mean_cloud[2]/0.93969)/0.36397
@@ -710,6 +724,7 @@ class lidar_nudt:
                 self.T1 = True
                 self.guess_7_decision = self.guess_7_state
                 self.guess_7_state = 0
+                #print("当前pos_data:", self.pos_data)
         t_test2 = time.time()
         print(f"处理一帧耗时为：{t_test2 - t_test1}")
         img = annotator.result()
@@ -724,14 +739,9 @@ class lidar_nudt:
             # 环高（1865，700）
             t1 = time.time()
             if not self.guess_7_decision:
-                if self.choice1_7:
-                    self.pos_data[10] = 2250
-                    self.pos_data[11] = 660
-                    self.choice1_7 = False
-                else:
-                    self.pos_data[10] = 2250
-                    self.pos_data[11] = 840
-                    self.choice1_7 = True
+                # 只用一个点作为哨兵猜测位置
+                self.pos_data[10] = 400
+                self.pos_data[11] = 750
             # 一号英雄
             if (t1 - t0) <= 120:
                 self.pos_data[0] = 1800
