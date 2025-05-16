@@ -615,12 +615,12 @@ class lidar_nudt:
         # 敌方总位置信息
         # 敌方为蓝方
         if self.enemy_is_blue:
-            #self.pos_data = [1800, 100, 1500, 850, 1950, 1350, 1865, 700, 1650, 100, 2400, 750]
-            self.pos_data = [1800, 100, 1500, 850, 1950, 1350, 1865, 700, 2400, 750]
+            self.pos_data = [1800, 100, 1500, 850, 1950, 1350, 1865, 700, 1650, 100, 2300, 750]
+            #self.pos_data = [1800, 100, 1500, 850, 1950, 1350, 1865, 700, 2400, 750]
         else:
             # 敌方是红方
-            #self.pos_data = [1000, 1300, 800, 1050, 850, 150, 1125, 1400, 1150, 1400, 400, 750]
-            self.pos_data = [1000, 1300, 800, 1050, 850, 150, 1125, 1400, 400, 750]
+            self.pos_data = [1000, 1300, 800, 1050, 850, 150, 1125, 1400, 1150, 1400, 500, 750]
+            #self.pos_data = [1000, 1300, 800, 1050, 850, 150, 1125, 1400, 400, 750]
         # 定时器一直发送
         self.timer = rospy.Timer(rospy.Duration(0.2), self.timer_callback)
         self.timer_double = rospy.Timer(rospy.Duration(1), self.timer_double_callback)
@@ -740,7 +740,7 @@ class lidar_nudt:
             t1 = time.time()
             if not self.guess_7_decision:
                 # 只用一个点作为哨兵猜测位置
-                self.pos_data[10] = 400
+                self.pos_data[10] = 2300
                 self.pos_data[11] = 750
             # 一号英雄
             if (t1 - t0) <= 120:
@@ -762,9 +762,9 @@ class lidar_nudt:
                 self.pos_data[6] = 1865
                 self.pos_data[7] = 700
             # 五号步兵
-            if (t1 - t0) <= 120:
+            '''if (t1 - t0) <= 120:
                 self.pos_data[8] = 1650
-                self.pos_data[9] = 100
+                self.pos_data[9] = 100'''
             send_interact_blue = com_class.lmap_interaction_send(self.pos_data, 0)
             com.send_data(send_interact_blue)
             t2 = time.time()
@@ -777,14 +777,9 @@ class lidar_nudt:
             # 哨兵靠近中间（550，660）（550，840）
             t1 = time.time()
             if not self.guess_7_decision:
-                if self.choice1_7:
-                    self.pos_data[10] = 550
-                    self.pos_data[11] = 660
-                    self.choice1_7 = False
-                else:
-                    self.pos_data[10] = 550
-                    self.pos_data[11] = 840
-                    self.choice1_7 = True
+                # 只用一个点作为哨兵猜测位置
+                self.pos_data[10] = 450
+                self.pos_data[11] = 750
             # print("比赛计时：", t1 - t0)
             # 一号英雄
             if (t1 - t0) <= 180:

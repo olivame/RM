@@ -763,10 +763,10 @@ class yolo_myself:
 
 
 
-		weight_first = "/home/ldk/RM_lidar/yolov5_camera_final_1/weights_test/r1/best.pt"
-		weight_second = "/home/ldk/RM_lidar/yolov5_camera_final_1/weights_test/r2/best.pt"
-		data_first = "/home/ldk/yolov5-master/data/coco128.yaml"#检测好像用不到，我就瞎写了一个
-		data_second = "/home/ldk/yolov5-master/data/coco128.yaml"
+		weight_first = "/home/olivame/yolov5_camera_final_1/weights_test/r1/r1_728_s.pt"
+		weight_second = "/home/olivame/yolov5_camera_final_1/weights_test/r2/best.pt"
+		data_first = "/home/olivame/yolov5-master/data/coco128.yaml"#检测好像用不到，我就瞎写了一个
+		data_second = "/home/olivame/yolov5-master/data/coco128.yaml"
 		dnn = False  # use OpenCV DNN for ONNX inference
 
 		imgsz = (3088, 2064)

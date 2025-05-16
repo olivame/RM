@@ -60,7 +60,26 @@ class yolov5_detector:
         return detections
 class nudt_lidar_exp:
     def __init__(self):
-        self.Rotate_matrix = np.float64([[-0.195049, -0.980605, -0.0192303],
+        R_tc = np.float64([
+            [-0.21013,  -0.03920,  0.97689],
+            [-0.97767,   0.01045, -0.20988],
+            [-0.00198,  -0.99918, -0.04052]
+        ])
+        t_tc = np.float64([[-0.10632], [-0.08475], [-0.01299]])
+
+        # 求逆得到点云到相机
+        R_ct = R_tc.T
+        t_ct = -R_tc.T @ t_tc
+        self.Rotate_matrix = R_ct
+        self.tvec = t_ct.flatten()
+        self.rvec, _ = cv2.Rodrigues(self.Rotate_matrix)
+        # 相机内参和畸变参数保持原样
+        self.camera_matrix = np.float64([[4.74121246e+03, 0.00000000e+00, 1.54304828e+03],
+                                         [0.00000000e+00, 4.74257863e+03, 1.04017365e+03],
+                                         [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+        self.distCoeffs = np.float64([1.77935891e-02, 6.50135435e-02, -6.90728155e-04, -4.89124420e-04, 2.79849057e+00])
+        print("初始化完毕,等待点云发布\n")
+    '''     self.Rotate_matrix = np.float64([[-0.195049, -0.980605, -0.0192303],
                                          [0.0239639, 0.0148363, -0.999603],
                                          [0.980501, -0.195432, 0.0206054]])
         self.rvec, _ = cv2.Rodrigues(self.Rotate_matrix)
@@ -71,8 +90,8 @@ class nudt_lidar_exp:
                                          [0, 1946.9, 1061.2],
                                          [0, 0, 1]])
         # 相机形变矩阵
-        self.distCoeffs = np.float64([-0.4509, 0.2993, -0.00009985, 0.0001312, -0.1297])
-        print("初始化完毕,等待点云发布\n")
+        self.distCoeffs = np.float64([-0.4509, 0.2993, -0.00009985, 0.0001312, -0.1297])'''
+        
     def pointcloud_callback(self,msg):
         print("接收到点云，开始处理\n")
         t1 = time.time()
@@ -85,10 +104,9 @@ class nudt_lidar_exp:
         print(f"点云处理完毕,处理耗时：{t2 - t1}\n")
     def img_callback(self, msg):
         img_np = np.frombuffer(msg.data, dtype=np.uint8)
-        frame = img_np.reshape((msg.height, msg.width, 3))
+        frame = img_np.reshape((msg.height, msg.width, 3)).copy()  # 关键：添加 .copy() 确保可写
         self.frame = frame
-
-
+    
 nudt_lidar = nudt_lidar_exp()
 rospy.init_node("nudt_lidar_v4", anonymous=True)
 msg = rospy.wait_for_message("/dense_point_cloud_topic", PointCloud2)
@@ -120,17 +138,21 @@ try:
 except:
     color_pp = 1000000
     print("error_defined_1")
-'''for i in range(len(x_2d_list)):
+for i in range(len(x_2d_list)):
     try:
         color = int(((distance_list[i])*255)/color_pp)
     except:
         color = 0
-    cv2.circle(nudt_lidar.frame, (int(x_2d_list[i]), int(y_2d_list[i])), 1, (0, 0, color), -1)
-'''
-# cv2.namedWindow("frame", 0)
-# cv2.imshow("frame", nudt_lidar.frame)
-# cv2.waitKey(5000)
-# cv2.destroyWindow("frame")
+    cv2.circle(nudt_lidar.frame, (int(x_2d_list[i]), int(y_2d_list[i])), 1, (0, 0, color), 3)
+
+cv2.namedWindow("frame", 0)
+cv2.imshow("frame", nudt_lidar.frame)
+# 修改此处，添加按下"q"退出功能
+while True:
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
+cv2.destroyWindow("frame")
 
 # 加载模型
 weights_path = "/home/olivame/yolov5_camera_final_1/weights_test/r1/r1_728_s.pt"
@@ -174,13 +196,17 @@ def img_pro_callback(msg):
                         mean_cloud += nudt_lidar.cloud_ndarray[m]
                         iou_count += 1
                 mean_cloud = mean_cloud / iou_count
+                print(f"点云平均位置为：{mean_cloud}")
                 annotator.box_label(xyxy_second_in_img1, label_second, color=colors(int(confidence_second), True))
     t2 = time.time()
     print(f"处理一帧耗时为：{t2 - t1}")
     img = annotator.result()
     cv2.namedWindow("Detect", 0)
     cv2.imshow("Detect", img)
-    cv2.waitKey(1)
+    # 修改此处，添加按下"q"退出功能
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyWindow("Detect")
+        rospy.signal_shutdown("User pressed q to exit.")
 
 rospy.Subscriber("/image_topic", Image, img_pro_callback)
 rospy.spin()

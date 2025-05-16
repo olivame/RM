@@ -53,7 +53,7 @@ class PointCloudAccumulator:
             self.last_received_time = current_time
 
 if __name__ == "__main__":
-    accumulation_time = 1 # 积累时间， 单位： 秒
+    accumulation_time = 0.3 # 积累时间， 单位： 秒
     publish_topic = "/dense_point_cloud_topic"
     accumulator = PointCloudAccumulator(accumulation_time, publish_topic)
     # 循环监听ROS消息
